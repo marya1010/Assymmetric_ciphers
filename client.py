@@ -1,31 +1,53 @@
 import socket
 import random
 
+def encrypt_message(K, message):
+    encrypted_message = ""
+    for c in message:
+        encrypted_message += chr(ord(c) + K)
+    return encrypted_message
+
+
+def decrypt_message(K, encrypted_message):
+    decrypted_message = ""
+    for c in encrypted_message:
+        decrypted_message += chr(ord(c) - K)
+    return decrypted_message
+
+
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect(('127.0.0.1', 55555))
 
-a = random.randint(10, 20)
-p, g = 7, 5
-A = g ** a % p
-A_g_p = str(A)+str(g)+str(p)#[A, g, p]
-print(A_g_p)
+# Генерирую a, p, g
+a = random.randint(1000, 10000)
+p = random.randint(1000, 10000)
+g = random.randint(1000, 10000)
+
+A = (g ** a) % p
+
 print(client.recv(1024).decode('utf-8'))
 
-print('посылаю Агп на сервер...')
-client.send(A_g_p.encode('utf-8'))
+client.send(str(A).encode('utf-8'))
+client.send(str(g).encode('utf-8'))
+client.send(str(p).encode('utf-8'))
 
-print("получаю B...")
+# Получаю B
 B = client.recv(1024).decode('utf-8')
 
-K = int(B)**a % p
+K = (int(B)**a) % p
 print('Полученное число К: ', K)
 
 while True:
 
     data = client.recv(1024)
-    print(data.decode('utf-8'))
-    print('**Введите сообщение для сервера:** ')
-    message = input().encode('utf-8')
-    client.send(message)
-    if message == 'exit':
-        break
+    print(f'Получил сообщение от сервера: {data.decode("utf-8")}')
+    print('Расшифрованное сообщение: ', decrypt_message(K, str(data.decode('utf-8'))[2:-1]))
+
+    print('**Введите сообщение для сервера:** ', end='')
+    message = str(input().encode('utf-8'))
+
+    encrypted_message = encrypt_message(K, message)
+    print(f'Зашифровал сообщение {message}: {encrypted_message}')
+
+    client.send(str(encrypted_message).encode('utf-8'))
+
